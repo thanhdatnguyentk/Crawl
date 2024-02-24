@@ -1,66 +1,73 @@
-from bs4 import BeautifulSoup
-import requests
-import time
+from selenium import webdriver
 import json
+from selenium.webdriver.common.proxy import Proxy, ProxyType
+import time
+import requests
+import queue
+from selenium.webdriver.chrome.options import Options
 
-URL = 'https://www.thivien.net/T%E1%BB%91-H%E1%BB%AFu/author-6uN9el0F61csLvlqLVN6gw'
-INDEX = 0
-file_content = "thivien.net\content.txt"
-file_path = "DCS VietNam\output.json"
- 
-def get_item():
-    global DATA
-    html_text = requests.get(URL).text
-    
-    soup = BeautifulSoup(html_text, 'lxml')
-    print(soup)
-    items = soup.find_all('div', class_="poem-group-list")
-    a = 0
-    DATA = {}
-    for idx,item in enumerate(items):
-        urls = item.find_all('a', href = True)
-        for poem_url in urls:
-            url = URL + poem_url
-            poem_text = requests.get(url).text
-            pome_soup = BeautifulSoup(poem_text, 'lxml')
+q = queue.Queue()
 
-            title = pome_soup.find('h1').text
-            poem_contents = pome_soup.find_all('br')
-            for content in poem_contents:
-                s = content.text
-                with open(file_content, "a", encoding='utf-8') as f:
-                    f.write(s)
-            if title != None:
-                a += 1
-                print(f"{idx + INDEX}:")
-                print(f"title: {title['title'].strip()}")
-                with open(file_content, "r", encoding='utf-8') as file_obj:
-                    s = file_obj.read()
-                print(f"content: {s.strip()}")
-                print(f"url: {url.strip()}")
-                print("")
-                data = {
-                            idx + INDEX:
-                            {
-                                "title": title['title'].strip(),
-                                "description": description.strip(),
-                                "url": url['href'].strip()
-                            }
-                    }
-                index = idx + INDEX
-                if (DATA == None):
-                    DATA = json.loads(data)
-                else: 
-                    DATA.update(data)
-    
-    return a, DATA
-   
-if __name__== '__main__':
-    output ={}
-    get_item()
-    a,data = get_item()
-    output.update(data)
-    json_data = json.dumps(output,indent=4, ensure_ascii=False)
-    with open(file_path, "w", encoding='utf-8') as json_file:
+value_proxies = []
+
+with open("thivien.net/valid_proxies.txt", "r") as f:
+    proxies = f.read().split("\n")
+    for p in proxies:
+        q.put(p)
+
+file_path = "thivien.net\output.json"
+
+global DATA
+
+website = 'https://www.thivien.net/T%E1%BB%91-H%E1%BB%AFu/author-6uN9el0F61csLvlqLVN6gw'
+
+driver = webdriver.Chrome()
+
+driver.get(website)
+all_matches_list = driver.find_elements("xpath",'//div[@class="poem-group-list"]//a')
+links = []
+for link in all_matches_list:
+
+  
+    url = link.get_attribute('href')
+    links.append(url)
+
+with open(file_path, "w", encoding='utf-8') as json_file:
+        json_file.write("")
+for idx, link in enumerate(links):
+    stt = idx
+    driver.get(link)
+    title = driver.find_element("xpath", '//h1').text
+    content = driver.find_element("xpath", '//div[@class="poem-content"]//p').text
+    print(f"{stt} :")
+    print(f"       {title}")
+    print(f"       {content}")
+    print(f"       {link}")
+    data = {
+                        stt:
+                        {
+                            "title": title.strip(),
+                            "contetn": content.strip(),
+                            "url": link.strip()
+                        }
+                }
+    json_data = json.dumps(data,indent=4, ensure_ascii=False)
+    with open(file_path, "a", encoding='utf-8') as json_file:
         json_file.write(json_data)
+    
+    proxy_ip_port = q.get()
+    proxy = Proxy()
+    proxy.proxy_type = ProxyType.MANUAL
+    proxy.http_proxy = proxy_ip_port
+    proxy.ssl_proxy = proxy_ip_port
+    
+    chrome_options = Options()
+    chrome_options.add_argument('--proxy-server={}'.format(proxy.http_proxy))
 
+    driver = webdriver.Chrome(options=chrome_options)
+    time.sleep(2)
+
+
+
+
+    

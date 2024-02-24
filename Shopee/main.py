@@ -1,76 +1,89 @@
-from bs4 import BeautifulSoup
-import requests
-import time
+from selenium import webdriver
 import json
+from selenium.webdriver.common.proxy import Proxy, ProxyType
+import time
+import requests
+import queue
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support.ui import WebDriverWait
+# q = queue.Queue()
 
-URL = 'https://shopee.vn/apple_flagship_store?page=0&shopCollection=124474144'
-INDEX = 0
-file_path = "Shopee/output.json"
+# value_proxies = []
 
-def load_next_page():
-    return
+# with open("thivien.net/valid_proxies.txt", "r") as f:
+#     proxies = f.read().split("\n")
+#     for p in proxies:
+#         q.put(p)
+global DATA
 
-def get_item():
-    global DATA
-    html_text = requests.get(URL).text
-    soup = BeautifulSoup(html_text, 'lxml')
-    items = soup.find_all('div', class_='shop-search-result-view')
-    print(html_text)
-    a = 0
-    DATA = {}
-    for item in items:
-        item_url = item.find('a')
-        product_name = item.text
-        item_text = requests.get(item_url).text
-        item_soup = BeautifulSoup(item_text, 'lxml')
-        comments = item_soup.find_all('div', class_='shopee-product-rating')
-        
-        for idx,comment in enumerate(comments):
-            comment_name = comment.find('a', class_='shopee-product-rating__author-name')
-        
-            if comment_name != None:
-                a += 1
-                name = comment.find('a', class_='shopee-product-rating__author-name').text
-                description = comment.find('div', style_='position: relative; box-sizing: border-box; margin: 15px 0px; font-size: 14px; line-height: 20px; color: rgba(0, 0, 0, 0.87); word-break: break-word; white-space: pre-wrap;').text
-                
-                print(f"{idx + INDEX}:")
-                print(f"product: {product_name.strip()}")
-                print(f"description: {description.strip()}")
-                print(f"name: {name.strip()}")
-                print("")
-                data = {
-                            idx + INDEX:
-                            {
-                                "product": product_name.strip(),
-                                "description": description.strip(),
-                                "name": name.strip()
-                            }
-                    }
-                index = idx + INDEX
-                if (DATA == None):
-                    DATA = json.loads(data)
-                else: 
-                    DATA.update(data)
-        
-    return a, DATA
-   
-if __name__== '__main__':
-    output ={}
-    while True:
-        get_item()
-        print(f'Wanna get more?')
-        print(f'Y/N')
-        x = input()
-        if x == 'Y':
-            URL = load_next_page()
-            a,data = get_item()
-            output.update(data)
-            INDEX += a
-        else:
-            a,data = get_item()
-            output.update(data)
-            break
-    json_data = json.dumps(output,indent=4, ensure_ascii=False)
-    with open(file_path, "w", encoding='utf-8') as json_file:
-        json_file.write(json_data)
+file_path = "Shopee\output.json"
 
+username = "ngthanhdat1303"
+password = "Dat13031977"
+
+driver = webdriver.Chrome()
+
+website = 'https://shopee.vn/buyer/login?from=https%3A%2F%2Fshopee.vn%2Fuser%2Faccount%2Fprofile&next=https%3A%2F%2Fshopee.vn%2Fuser%2Faccount%2Fprofile'
+driver.get(website)
+
+driver.find_element("xpath", '//input[@name="loginKey"]').send_keys(username)
+time.sleep(2)
+driver.find_element("xpath", '//input[@name="password"]').send_keys(password)   
+time.sleep(2)
+driver.find_element("xpath", '//button[contains(text(), "Đăng nhập")]').click()
+time.sleep(20)
+
+website = 'https://shopee.vn/apple_flagship_store?page=0&shopCollection=124474144'
+
+driver.get(website)
+
+time.sleep(10)
+
+all_matches_list = driver.find_elements("xpath",'//div[@class="shop-collection-view__item col-xs-2-4"]//a')
+links = []
+for link in all_matches_list:
+    url = link.get_attribute('href')
+    links.append(url)
+
+print(len(links))
+time.sleep(10)
+
+# with open(file_path, "w", encoding='utf-8') as json_file:
+#         json_file.write("")
+# for idx, link in enumerate(links):
+#     stt = idx
+#     driver.get(link)
+#     title = driver.find_element("xpath", '//h1').text
+#     content = driver.find_element("xpath", '//div[@class="poem-content"]//p').text
+#     print(f"{stt} :")
+#     print(f"       {title}")
+#     print(f"       {content}")
+#     print(f"       {link}")
+#     data = {
+#                         stt:
+#                         {
+#                             "title": title.strip(),
+#                             "contetn": content.strip(),
+#                             "url": link.strip()
+#                         }
+#                 }
+#     json_data = json.dumps(data,indent=4, ensure_ascii=False)
+#     with open(file_path, "a", encoding='utf-8') as json_file:
+#         json_file.write(json_data)
+    
+#     # proxy_ip_port = q.get()
+#     # proxy = Proxy()
+#     # proxy.proxy_type = ProxyType.MANUAL
+#     # proxy.http_proxy = proxy_ip_port
+#     # proxy.ssl_proxy = proxy_ip_port
+    
+#     # chrome_options = Options()
+#     # chrome_options.add_argument('--proxy-server={}'.format(proxy.http_proxy))
+
+#     # driver = webdriver.Chrome(options=chrome_options)
+#     time.sleep(2)
+
+
+
+
+    
